@@ -1,17 +1,10 @@
 #NoEnv
 #SingleInstance, Force
 SetWorkingDir, %A_ScriptDir%
-global factors:={"+":5, "^":10, "!":20, "^+":50, "!^":100}
+CheckAdmin()
+TrayMenu(%true%)
 
-
-;{============= TRAY ICON ============>>>
-	
-	if (A_IsCompiled)
-		Menu, Tray, Icon, %A_ScriptFullPath%, -159
-	else
-		Menu, Tray, Icon, % FileExist("WinMover.ico") ? "WinMover.ico":""
-	
-;}<<<======= end TRAY ICON ==============
+global version:="1.1.0", factors:={"+":5, "^":10, "!":20, "^+":50, "!^":100}
 
 
 ;{========== REGISTER HOTKEYS =========>>>
@@ -25,16 +18,41 @@ global factors:={"+":5, "^":10, "!":20, "^+":50, "!^":100}
 	Hotkeys("*Right", "IncrementValue", "Window Sizer")
 	Hotkeys("*WheelUp", "IncrementValue", "Window Sizer")
 	Hotkeys("*WheelDown", "IncrementValue", "Window Sizer")
+;}
+
+;{======= HANDLE CMDLINE PARAMS =======>>>
 	
-;}<<<==== end REGISTER HOTKEYS ===========
+	if (cmdLine:=%true%) {
+		if (WinExist(cmdLine)) {
+			GetWinInfo(cmdLine)
+			return
+		}
+		else if (RegExMatch(coords, "x?(?P<X>\d+) y?(?P<Y>\d+) w?(?P<W>\d+) h?(?P<H>\d+)", coord)) {
+			coordX := SubStr(cb, (sPos:=InStr(cb, "x"))+1, InStr(cb, " y")-sPos-1)
+			coordY := SubStr(cb, (sPos:=InStr(cb, "y"))+1, InStr(cb, " w")-sPos-1)
+			coordW := SubStr(cb, (sPos:=InStr(cb, "w"))+1, InStr(cb, " h")-sPos-1)
+			coordH := SubStr(cb, (sPos:=InStr(cb, "h"))+1, StrLen(cb)-sPos)
+			WinMove, %winTitle%,, %coordX%, %coordY%, %coordW%, %coordH%
+			m("ico:i", "Done!", "time:1.5")
+			ExitApp
+		}
+	}	
+;}
 
-
-if ((info:=%true%) && WinExist(info)) {
-	GetWinInfo(info)
-	return
-}
-TrayTip, % RegExReplace(A_ScriptName, "\.(ahk|exe)\s*$"), Activate the window to manipulate`, then press F12., 2, 1
+TrayTip, % RegExReplace(A_ScriptName, "\.(ahk|exe)\s*$") " is Running " (A_IsAdmin ? "As Admin" : ""), Activate a window and press <F12> to move & resize it, 1.5, 1
 return
+
+
+CheckFocus() {
+	static ctrlList:="7,8,9,10"
+	ControlGetFocus, ctrl, Window Sizer
+	RegExMatch(ctrl, "i)Edit(\d+)", m)
+	if m1 in %ctrlList%
+	{
+		GuiControlGet, curVal,, %ctrl%
+		return {Name:ctrl, Value:curVal}
+	}
+}
 
 class Monitors
 {
@@ -124,6 +142,21 @@ GetMods() {
 	for a, b in {Alt:"!", Ctrl:"^", LWin: "#", Shift:"+"}
 		mods .= GetKeyState(a, "P") ? b : ""
 	return mods
+}
+
+GetWinInfo(win:="") {
+	global
+	if (win) {
+		WinActivate, %win%
+		WinWaitActive, %win%,, 1
+		if (ErrorLevel) {
+			m("ico:!", "Couldn't activate given window:`n", win)
+			return
+		}
+	}
+	WinGetActiveStats, winTitle, ww, wh, wx, wy
+	Gui, Destroy
+	Gui()
 }
 
 Gui() {
@@ -239,12 +272,19 @@ Gui() {
 	
 	LoadClipboard:	;{
 		cb := Clipboard
-		if (!cb~="x(\d+) y(\d+) w(\d+) h(\d+)")
+		;~ if (!cb~="x(\d+) y(\d+) w(\d+) h(\d+)")
+		if (!RegExMatch(cb, "x?(?P<X>\d+) y?(?P<Y>\d+) w?(?P<W>\d+) h?(?P<H>\d+)", coord))
 			return m("ico:!", "Invalid Clipboard contents...")
-		GuiControl,, Edit7, % SubStr(cb, (sPos:=InStr(cb, "x"))+1, InStr(cb, " y")-sPos-1)
-		GuiControl,, Edit8, % SubStr(cb, (sPos:=InStr(cb, "y"))+1, InStr(cb, " w")-sPos-1)
-		GuiControl,, Edit9, % SubStr(cb, (sPos:=InStr(cb, "w"))+1, InStr(cb, " h")-sPos-1)
-		GuiControl,, Edit10, % SubStr(cb, (sPos:=InStr(cb, "h"))+1, StrLen(cb)-sPos)
+		;{*************** ;#[DEBUGGING]#; ***************
+			if m("btn:yn","ico:?","title:CONTINUE?", "coordX: " coordX, "coordY: " coordY, "coordW: " coordW, "coordH: " coordH)="NO"
+				ExitApp
+		;}***********************************************
+		GuiControl,, Edit7, % (coordX:=SubStr(cb, (sPos:=InStr(cb, "x"))+1, InStr(cb, " y")-sPos-1))
+		GuiControl,, Edit8, % (coordY:=SubStr(cb, (sPos:=InStr(cb, "y"))+1, InStr(cb, " w")-sPos-1))
+		GuiControl,, Edit9, % (coordW:=SubStr(cb, (sPos:=InStr(cb, "w"))+1, InStr(cb, " h")-sPos-1))
+		GuiControl,, Edit10, % (coordH:=SubStr(cb, (sPos:=InStr(cb, "h"))+1, StrLen(cb)-sPos))
+		Gui, Submit, NoHide
+		WinMove, %winTitle%,, %coordX%, %coordY%, %coordW%, %coordH%
 	return	;}
 }
 
@@ -253,6 +293,68 @@ GuiClose() {
 	ExitApp
 }
 
+Help() {
+	txt =
+	(LTrim
+		- CTRL+SHIFT+C: Copy values to clipboard
+		
+		- UP/DOWN: Increase or decrease value by:
+		
+		MODIFIER	VALUE
+		-------------------------------
+		None		1   px
+		Shift		5   px
+		Ctrl		10   px
+		Alt		20 px
+		Ctrl+Shift		50 px
+		Ctrl+Alt		100 px
+		
+	)
+	m("ico:?", "title:WinMover Hotkey Help", txt)
+}
+
+
+Hotkeys(key:="", item:="", win:="") {
+	static hkList := []
+	
+	if (!key)
+		return hkList
+	launch := RegExReplace(RegExReplace(item,"&")," ","_")
+	if (!launch && ObjHasKey(hkList, key)) {
+		Hotkey, %key%, Toggle
+		hkList[key].state := hkList[key].state ? 0 : 1
+		return
+	}
+	if (!launch)
+		return
+	if (win) {
+		if (SubStr(win, 1, 1) = "!")
+			Hotkey, IfWinNotActive, % SubStr(win, 2)
+		else
+			Hotkey, IfWinActive, %win%
+	}
+	Hotkey, %key%, %launch%, On
+	hkList[key] := {state:1, launch:launch}
+	Hotkey, IfWinActive
+}
+
+
+CheckAdmin(get:="") {
+	if (get)
+		return A_IsAdmin
+	if (!A_IsAdmin) {
+		if (%true% = "admin") {
+			if (silent)
+				return
+			MsgBox 262196,, Failed to reload as Admin. Try again?
+			IfMsgBox, No
+				return
+		}
+		Run, *RunAs "%A_ScriptFullPath%" admin
+		Exitapp
+	}
+	return 1
+}
 
 m(info*) {
 	static icons:={"x":16,"?":32,"!":48,"i":64}, btns:={c:1,oc:1,co:1,ari:2,iar:2,ria:2,rai:2,ync:3,nyc:3,cyn:3,cny:3,yn:4,ny:4,rc:5,cr:5}

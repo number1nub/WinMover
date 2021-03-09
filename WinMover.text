@@ -1,3 +1,5 @@
+1.1.1
+- [Fixed] Negative coordinates weren't working when loading from clipbaord
 1.1.0
 - Releasing
 1.0.0

@@ -4,7 +4,8 @@ SetWorkingDir, %A_ScriptDir%
 CheckAdmin()
 TrayMenu(%true%)
 
-global version:="1.1.0", factors:={"+":5, "^":10, "!":20, "^+":50, "!^":100}
+global version := "1.1.1"
+	 , factors := {"+":5, "^":10, "!":20, "^+":50, "!^":100}
 
 
 ;{========== REGISTER HOTKEYS =========>>>
@@ -27,7 +28,7 @@ global version:="1.1.0", factors:={"+":5, "^":10, "!":20, "^+":50, "!^":100}
 			GetWinInfo(cmdLine)
 			return
 		}
-		else if (RegExMatch(coords, "x?(?P<X>\d+) y?(?P<Y>\d+) w?(?P<W>\d+) h?(?P<H>\d+)", coord)) {
+		else if (RegExMatch(coords, "x?(?P<X>-?\d+) y?(?P<Y>-?\d+) w?(?P<W>-?\d+) h?(?P<H>-?\d+)", coord)) {
 			coordX := SubStr(cb, (sPos:=InStr(cb, "x"))+1, InStr(cb, " y")-sPos-1)
 			coordY := SubStr(cb, (sPos:=InStr(cb, "y"))+1, InStr(cb, " w")-sPos-1)
 			coordW := SubStr(cb, (sPos:=InStr(cb, "w"))+1, InStr(cb, " h")-sPos-1)
@@ -338,6 +339,14 @@ Hotkeys(key:="", item:="", win:="") {
 	Hotkey, IfWinActive
 }
 
+TrayMenu(cmdLine:="") {
+	if (A_IsCompiled)
+		Menu, Tray, Icon, %A_ScriptFullPath%, -159
+	else
+		Menu, Tray, Icon, % FileExist(ico:=(A_ScriptDir "\" RegExReplace(A_ScriptName, "\.(ahk|exe)$") ".ico")) ? ico : ""
+	
+	Menu, Tray, Tip, % "Running " (A_IsAdmin ? "As Admin":"") "..."
+}
 
 CheckAdmin(get:="") {
 	if (get)

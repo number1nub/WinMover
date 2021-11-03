@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+	<windows>
+		<window name="Scrcpy Android Remote" title="SM-N981U1" class="SDL_app">
+			<pos title="Center Main">x721 y1 w478 h1045</pos>
+			<pos coords="Vertical Monitor 3">x2038 y-339 w845 h1870</pos>
+		</window>
+		<window name="ThinkOrSwim" title="thinkorswim" class="SunAwtFrame">
+			<pos title="ES Pos 1">x53 y-32 w1876 h570</pos>
+			<pos title="NQ Pos 2">x53 y499 w1875 h589</pos>
+		</window>
+	</windows>
+</config>

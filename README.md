@@ -1,1 +1,7 @@
-# WinMover<br><br>A simple utility for precicely positioning windows.<br><br>![WinMover GUI](res/ScreenCap1.png)<br>
+WinMover
+========
+
+A simple utility for quickly and precicely moving, sizing and positioning windows.
+
+![WinMover GUI](res/ScreenCap1.png)
+

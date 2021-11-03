@@ -1,0 +1,4 @@
+GuiClose() {
+	GuiEscape:
+	ExitApp
+}
